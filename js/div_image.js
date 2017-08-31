@@ -11,50 +11,58 @@
 //    'images/PICKUP.png';
 //    'images/8bit-car_test.png';
 //    'images/zelda_test.png';
-          'images/zelda_part1_test.png';
+    'images/zelda_part1_test.png';
 //    'images/zelda_part1a_test.png';
 //    'images/btnSet.png';
-
-  analyseImage(img, divImage);
+//    'images/Ellipse.jpg';
+//
+  analyseImage(img,divImage);
 
   /* Test */
 
   function divImage (analysedImage) {
-
-    var parsedColors = analysedImage.parsedColors;
+    
+    console.log(analysedImage);
+    
+    var MULTI_SCALE = 10;
+    
+    var parsedColors = analysedImage.colors;
     var image = analysedImage.image;
 
     var head = document.getElementsByTagName('head')[0];
-    var pic = document.getElementById('pic');
-    var scaleFac = 10;
+    var pic  = document.getElementById('pic');
 
-    var uniquClasses = parseUniqeClasses(parsedColors);
-    var styleHead = createStyleHead(uniquClasses);
-    var divPixels = createDivPixels(parsedColors, uniquClasses);
+    var uniquClasses = parseUniqeClasses(parsedColors.unique);
+    var divPixels    = createDivPixels(parsedColors.all, uniquClasses[0]);
 
     // create the header
     var style = document.createElement('style');
-    style.innerHTML = styleHead;
+    style.innerHTML = uniquClasses[1].join('');
     head.appendChild(style);
 
     // append the pic 
     pic.appendChild(divPixels);
-    pic.setAttribute('style', 'width:' + image.width * scaleFac + 'px; height:' + image.height * scaleFac + 'px;');
+    pic.setAttribute(
+      'style',
+      'width:' + image.width * MULTI_SCALE + 'px; ' + 
+      'height:' + image.height * MULTI_SCALE + 'px;'
+    );
 
     function parseUniqeClasses (parsedColors) {
+      
+      var uniquClasses = {};
+      var styles = [];
 
-      var uniquClasses = { };
-
-      for (var i = 0, count = 0; i < parsedColors.length; i++) {
+      for (var i = 0; i < parsedColors.length; i++) {
 
         var currColor = parsedColors[i];
-
-        if (!uniquClasses[currColor]) {
-
-          var id = count;
+        
+          var id = i;
           var color = currColor;
-          var cssClass = 'color_' + count;
+          var cssClass = 'color_' + i;
           var cssStyle = '.' + cssClass + '{ background-color:' + currColor + ' }\n';
+
+          styles.push(cssStyle);
 
           uniquClasses[currColor] = {
             id: id,
@@ -62,20 +70,9 @@
             cssStyle: cssStyle,
             cssClass: cssClass
           };
-
-          count += 1;
-        }
       }
 
-      return uniquClasses;
-    }
-
-    function createStyleHead (object) {
-      var style = '';
-      for (var key in object) {
-        style += object[key].cssStyle;
-      }
-      return style;
+      return [uniquClasses, styles];
     }
 
     function createDivPixels (parsedColors, uniqueClasses) {
@@ -87,6 +84,12 @@
         var currClass = uniqueClasses[currColor].cssClass;
         var pixel = document.createElement('div');
         pixel.setAttribute('class', 'pix ' + currClass);
+        pixel.setAttribute(
+          'style',
+          'width: ' + MULTI_SCALE + 'px; ' +
+          'height: ' + MULTI_SCALE + 'px; '+
+          'float: left;'
+        );
 
         return pixel;
 
@@ -99,52 +102,45 @@
       return pixels;
 
     }
-
   }
 
-  function analyseImage (imagePath, ready) {
+  function analyseImage (imagePath, done) {
 
     'use strict';
-
-    var canvas = document.getElementById('myCanvas');
-    var content = prepareCanvas(canvas);
-
+    
     var img = new Image();
-    img.src = imagePath;
-    img.crossOrigin = "Anonymous";
     img.addEventListener('load', onImageLoaded);
-
-    function prepareCanvas (canvas) {
-      if (canvas && canvas.getContext) {
-        return canvas.getContext('2d') || null;
-      }
-    }
+    img.crossOrigin = "Anonymous";
+    img.src = imagePath;
 
     function onImageLoaded () {
-
-      /* jshint validthis: true */
-
-      // set the canvas size equal to the img size.
+      
+      var canvas = document.createElement('canvas');
       canvas.setAttribute('width', this.width);
       canvas.setAttribute('height', this.height);
+      
+      var ctx = prepareCanvas(canvas);
+      
+      ctx.drawImage(this, 0, 0);
 
-      // draw the image on the canvas
-      content.drawImage(this, 0, 0);
+      var imageData = ctx.getImageData(0, 0, this.width, this.height);
+      var colors    = parseColorBytes(imageData.data);
 
-      // Create an ImageData object.
-      var imgd = content.getImageData(0, 0, this.width, this.height);
-      var parsedColors = parseColorBytes(imgd.data);
-      var parsedImage = {
-        parsedColors: parsedColors,
+      done({
+        colors: colors,
         image: img
-      };
-
-      ready(parsedImage);
+      });
+            
+      function prepareCanvas (canvas) {
+        if (canvas && canvas.getContext) {
+          return canvas.getContext('2d') || null;
+        }
+      }
     }
 
     function parseColorBytes (pixBits) {
 
-      var parsedColors = [];
+      var colors = { all: [], unique: [] };
 
       for (var i = 0; i < pixBits.length; i += 4) {
 
@@ -152,14 +148,18 @@
         var g = pixBits[i + 1];
         var b = pixBits[i + 2];
         var a = pixBits[i + 3];
-        a = Math.round((a / 255) * 100) / 100;
+        a = Math.round((a / 255) * 1000) / 1000;
 
-        var px = 'rgba(' + r + ', ' + g + ', ' + b + ', ' + a + ')';
+        var color = (a < 1 ? 'rgba' : 'rgb') + '(' + r + ', ' + g + ', ' + b + ( a < 1 ? ', ' + a : '' ) + ')';
 
-        parsedColors.push(px);
+        colors.all.push(color);
+                
+        if (!~colors.unique.indexOf(color)) {
+          colors.unique.push(color);
+        }
       }
-
-      return parsedColors;
+      
+      return colors;
     }
   }
 
