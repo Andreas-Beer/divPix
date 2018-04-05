@@ -8,10 +8,10 @@
 //    'images/rgba_test.png';
 //    'images/bucket_small.jpg';
 //    'images/bucket.jpg';
-//    'images/PICKUP.png';
+      'images/PICKUP.png';
 //    'images/8bit-car_test.png';
 //    'images/zelda_test.png';
-    'images/zelda_part1_test.png';
+//    'images/zelda_part1_test.png';
 //    'images/zelda_part1a_test.png';
 //    'images/btnSet.png';
 //    'images/Ellipse.jpg';
